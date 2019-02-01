@@ -7,25 +7,25 @@ RUN git clone https://github.com/proxytunnel/proxytunnel.git
 WORKDIR /root/proxytunnel
 RUN make
 
-FROM alpine:edge AS resource
+FROM ubuntu:bionic AS resource
 
-RUN apk --no-cache add \
-  bash \
+RUN apt-get update && apt-get install -y \
   curl \
   git \
-  git-daemon \
-  git-lfs \
   gnupg \
   gzip \
   jq \
-  libressl \
-  libressl-dev \
+  openssl \
+  libssl-dev \
   make \
   g++ \
-  openssh \
-  perl \
-  tar \
-  libstdc++
+  openssh-client \
+  libstdc++6 \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+
+RUN apt-get install git-lfs
 
 COPY --from=tunnelbuilder /root/proxytunnel/proxytunnel proxytunnel
 
@@ -140,7 +140,6 @@ RUN             rm -f \
                     git-rm \
                     git-send-email \
                     git-send-pack \
-                    git-shell \
                     git-shortlog \
                     git-show \
                     git-show-branch \
@@ -169,19 +168,14 @@ RUN             rm -f \
 
 WORKDIR         /usr/bin
 RUN             rm -f \
-                    git \
                     git-cvsserver \
                     git-shell \
                     git-receive-pack \
                     git-upload-pack \
                     git-upload-archive &&\
-                ln -s ../libexec/git-core/git git &&\
-                ln -s ../libexec/git-core/git-shell git-shell &&\
-                ln -s ../libexec/git-core/git git-upload-archive &&\
-                ln -s ../libexec/git-core/git-upload-pack git-upload-pack
-
-WORKDIR         /usr/libexec/git-core
-RUN             ln -s git git-merge
+                ln -s git git-upload-archive &&\
+                ln -s git git-merge &&\
+                ln -s git git-crypt
 
 WORKDIR         /usr/share
 RUN             rm -rf \
@@ -194,13 +188,14 @@ WORKDIR         /usr/lib
 RUN             rm -rf \
                     perl \
                     perl5
+RUN             apt-get autoremove -y
 
 FROM resource AS tests
 ADD test/ /tests
 RUN /tests/all.sh
 
 FROM resource AS integrationtests
-RUN apk --no-cache add squid
+RUN apt-get update && apt-get install -y squid
 ADD test/ /tests/test
 ADD integration-tests /tests/integration-tests
 RUN /tests/integration-tests/integration.sh
