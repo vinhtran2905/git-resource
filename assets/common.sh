@@ -140,7 +140,7 @@ add_git_metadata_url() {
     # git@github.com:concourse/git-resource.git     -> concourse/git-resource
     # https://github.com/concourse/git-resource.git -> concourse/git-resource
     local ownerRepo=$(echo $origin | sed -e' s/.*github.com[:\/]//; s/\.git$//')
-    local url=$(echo "https://github.com/$ownerRepo/commit/$commit" | jq -R . )
+    local url=$(echo "$ownerRepo/commit/$commit" | jq -R . )
 
     jq ". + [
         {name: \"url\", value: ${url}}
